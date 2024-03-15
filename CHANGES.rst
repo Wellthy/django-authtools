@@ -1,7 +1,7 @@
 CHANGES
 =======
 
-3.0.0
+2.0.0
 ------------------
 
 - Add support for Django 4.2
