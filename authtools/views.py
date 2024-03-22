@@ -10,10 +10,7 @@ from django.contrib.auth import (
     get_user_model, update_session_auth_hash,
     REDIRECT_FIELD_NAME, login as auth_login
 )
-from django.contrib.auth.views import (
-    SuccessURLAllowedHostsMixin,
-    INTERNAL_RESET_SESSION_TOKEN
-)
+from django.contrib.auth.views import INTERNAL_RESET_SESSION_TOKEN
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import (
     SetPasswordForm, PasswordChangeForm, PasswordResetForm
@@ -27,7 +24,7 @@ from django.contrib.sites.shortcuts import get_current_site
 
 from django.shortcuts import redirect, resolve_url
 from django.utils.functional import lazy
-from django.utils.http import is_safe_url, urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_decode
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
@@ -35,6 +32,18 @@ from django.views.generic import FormView, TemplateView, RedirectView
 from django import VERSION as DJANGO_VERSION
 
 from .forms import AuthenticationForm
+
+try:
+    from django.contrib.auth.views import RedirectURLMixin
+except ImportError:  # <= Django 3.2
+    from django.contrib.auth.views import (
+        SuccessURLAllowedHostsMixin as RedirectURLMixin
+    )
+
+try:
+    from django.utils.http import url_has_allowed_host_and_scheme
+except ImportError:  # <= Django 3.2
+    from django.utils.http import is_safe_url as url_has_allowed_host_and_scheme
 
 User = get_user_model()
 
@@ -74,7 +83,7 @@ class WithNextUrlMixin(object):
         except AttributeError:
             pass
 
-        url_is_safe = is_safe_url(
+        url_is_safe = url_has_allowed_host_and_scheme(
             redirect_to,
             allowed_hosts=allowed_hosts,
             require_https=self.request.is_secure()
@@ -136,7 +145,7 @@ class AuthDecoratorsMixin(NeverCacheMixin, CsrfProtectMixin, SensitivePostParame
     pass
 
 
-class LoginView(AuthDecoratorsMixin, SuccessURLAllowedHostsMixin,
+class LoginView(AuthDecoratorsMixin, RedirectURLMixin,
                 WithCurrentSiteMixin, WithNextUrlMixin, FormView):
     form_class = AuthenticationForm
     authentication_form = None
@@ -183,7 +192,7 @@ class LoginView(AuthDecoratorsMixin, SuccessURLAllowedHostsMixin,
         return kwargs
 
 
-class LogoutView(NeverCacheMixin, SuccessURLAllowedHostsMixin, WithCurrentSiteMixin,
+class LogoutView(NeverCacheMixin, RedirectURLMixin, WithCurrentSiteMixin,
                  WithNextUrlMixin, TemplateView,
                  RedirectView):
     template_name = 'registration/logged_out.html'

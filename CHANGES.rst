@@ -4,7 +4,7 @@ CHANGES
 2.0.0
 ------------------
 
-- Add support for Django 3.0
+- Add support for Django 4.2
 
 
 1.7.0 (2019-06-26)
